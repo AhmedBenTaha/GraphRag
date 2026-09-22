@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GraphRAG — Knowledge Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+  <canvas id="bg-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <!-- Command Palette -->
+  <div id="command-palette" class="modal-overlay hidden">
+    <div class="modal-content command-palette-content">
+      <div class="command-input-wrapper">
+        <i class="ph ph-magnifying-glass"></i>
+        <input type="text" id="command-input" placeholder="Type a command or search...">
+        <kbd>ESC</kbd>
+      </div>
+      <div class="command-list">
+        <button class="command-item" data-action="new-chat"><i class="ph ph-plus-circle"></i> New Chat</button>
+        <button class="command-item" data-action="search-conversations"><i class="ph ph-chat-circle-text"></i> Search Conversations</button>
+        <button class="command-item" data-action="open-graph"><i class="ph ph-network"></i> Open Knowledge Graph</button>
+        <button class="command-item" data-action="open-documents"><i class="ph ph-files"></i> Open Documents</button>
+        <button class="command-item" data-action="open-settings"><i class="ph ph-gear"></i> Settings</button>
+        <button class="command-item" data-action="toggle-theme"><i class="ph ph-moon"></i> Toggle Theme</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-content settings-content">
+      <div class="modal-header">
+        <h2><i class="ph ph-gear"></i> Settings</h2>
+        <button class="close-modal" id="close-settings"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-group">
+          <h3>Appearance</h3>
+          <label class="setting-item">
+            <span>Theme</span>
+            <select id="setting-theme">
+              <option value="dark">Dark Mode</option>
+              <option value="light">Light Mode</option>
+            </select>
+          </label>
+          <label class="setting-item">
+            <span>Reduce Motion</span>
+            <input type="checkbox" id="setting-reduce-motion">
+          </label>
+        </div>
+        <div class="setting-group">
+          <h3>Chat</h3>
+          <label class="setting-item">
+            <span>Enter to Send</span>
+            <input type="checkbox" id="setting-enter-to-send" checked>
+          </label>
+          <label class="setting-item">
+            <span>Auto-scroll</span>
+            <input type="checkbox" id="setting-auto-scroll" checked>
+          </label>
+          <label class="setting-item">
+            <span>Markdown Rendering</span>
+            <input type="checkbox" id="setting-markdown" checked>
+          </label>
+        </div>
+        <div class="setting-group">
+          <h3>API</h3>
+          <div class="setting-item api-info">
+            <span>API Base URL</span>
+            <code id="setting-api-url">http://127.0.0.1:8000</code>
+          </div>
+          <button class="btn-primary" id="test-connection-btn">Test Connection</button>
+          <div id="connection-status" class="connection-status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="btn-new-chat" id="btn-new-chat">
+          <i class="ph ph-plus"></i> NEW CHAT
+        </button>
+      </div>
+      <div class="sidebar-content" id="sidebar-content">
+        <!-- Populated by JS -->
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn-icon" id="toggle-sidebar-mobile"><i class="ph ph-list"></i></button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="btn-icon mobile-only" id="mobile-menu-btn"><i class="ph ph-list"></i></button>
+          <div class="logo">
+            <span class="logo-icon">◈</span>
+            <div class="logo-text">
+              <span class="logo-title">GraphRAG</span>
+              <span class="logo-subtitle">Knowledge Intelligence</span>
+            </div>
+          </div>
+        </div>
+        <nav class="top-nav">
+          <button class="nav-btn active" data-view="view-chat">Chat</button>
+          <button class="nav-btn" data-view="view-graph">Knowledge Graph</button>
+          <button class="nav-btn" data-view="view-documents">Documents</button>
+        </nav>
+        <div class="header-right">
+          <div class="system-status">
+            <span class="status-dot"></span> SYSTEM ONLINE
+          </div>
+          <button class="btn-icon" id="btn-toggle-inspector" title="Retrieval Inspector"><i class="ph ph-binoculars"></i></button>
+          <button class="btn-icon" id="btn-settings"><i class="ph ph-gear"></i></button>
+          <button class="btn-icon" id="btn-theme"><i class="ph ph-moon"></i></button>
+        </div>
+      </header>
+
+      <div class="views-container">
+        <!-- Chat View -->
+        <div id="view-chat" class="view active">
+          <div class="chat-container" id="chat-container">
+            <div class="welcome-screen" id="welcome-screen">
+              <h1 class="welcome-title">UNDERSTAND KNOWLEDGE DIFFERENTLY</h1>
+              <h2 class="welcome-subtitle">GraphRAG Intelligence</h2>
+              <p class="welcome-desc">Ask questions across your knowledge base and discover connections between concepts, entities, and documents.</p>
+              <div class="suggestion-cards">
+                <button class="suggestion-card" data-query="What is the main topic?">
+                  <i class="ph ph-target"></i>
+                  <span>What is the main topic?</span>
+                </button>
+                <button class="suggestion-card" data-query="Explain the key concepts.">
+                  <i class="ph ph-lightbulb"></i>
+                  <span>Explain the key concepts.</span>
+                </button>
+                <button class="suggestion-card" data-query="What are the important relationships?">
+                  <i class="ph ph-network"></i>
+                  <span>What are the important relationships?</span>
+                </button>
+                <button class="suggestion-card" data-query="Summarize the knowledge base.">
+                  <i class="ph ph-article"></i>
+                  <span>Summarize the knowledge base.</span>
+                </button>
+              </div>
+            </div>
+            <div class="messages-area" id="messages-area"></div>
+            
+            <!-- Loading Animation -->
+            <div class="loading-container hidden" id="loading-container">
+              <div class="loading-header">ANALYZING QUERY</div>
+              <div class="loading-steps">
+                <div class="loading-step completed" id="step-1"><i class="ph ph-check-circle"></i> Understanding question</div>
+                <div class="loading-step active" id="step-2"><i class="ph ph-circle"></i> Searching knowledge</div>
+                <div class="loading-step pending" id="step-3"><i class="ph ph-circle"></i> Connecting information</div>
+                <div class="loading-step pending" id="step-4"><i class="ph ph-circle"></i> Generating answer</div>
+              </div>
+              <div class="loading-network-viz"></div>
+            </div>
+          </div>
+
+          <div class="input-area">
+            <div class="input-wrapper">
+              <textarea id="chat-input" placeholder="Ask anything about your knowledge base..." rows="1"></textarea>
+              <div class="input-footer">
+                <div class="input-hints">
+                  <span>Shift + Enter for new line</span>
+                  <span class="char-count" id="char-count">0</span>
+                </div>
+                <div class="input-actions">
+                  <button class="btn-icon-sm" id="clear-input" title="Clear"><i class="ph ph-x"></i></button>
+                  <button class="btn-send" id="send-btn" title="Send"><i class="ph ph-paper-plane-right"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Knowledge Graph View -->
+        <div id="view-graph" class="view">
+          <div class="graph-header">
+            <h2><i class="ph ph-network"></i> Knowledge Graph</h2>
+            <span class="demo-badge">DEMO VISUALIZATION</span>
+            <div class="graph-controls">
+              <button class="btn-sm" id="graph-reset"><i class="ph ph-arrows-counter-clockwise"></i> Reset</button>
+            </div>
+          </div>
+          <div id="graph-container" class="graph-container"></div>
+        </div>
+
+        <!-- Documents View -->
+        <div id="view-documents" class="view">
+          <div class="docs-header">
+            <h2><i class="ph ph-files"></i> Documents</h2>
+            <span class="demo-badge">DEMO</span>
+          </div>
+          <div class="docs-controls">
+            <div class="search-box">
+              <i class="ph ph-magnifying-glass"></i>
+              <input type="text" placeholder="Search documents...">
+            </div>
+            <button class="btn-sm"><i class="ph ph-funnel"></i> Filter</button>
+            <button class="btn-sm"><i class="ph ph-sort-ascending"></i> Sort</button>
+            <button class="btn-sm disabled" title="Coming soon"><i class="ph ph-upload-simple"></i> Upload</button>
+          </div>
+          <div class="docs-grid">
+            <div class="doc-card">
+              <div class="doc-icon"><i class="ph ph-file-pdf"></i></div>
+              <div class="doc-info">
+                <h4>GraphRAG Architecture.pdf</h4>
+                <p>Uploaded recently • 2.4 MB</p>
+              </div>
+            </div>
+            <div class="doc-card">
+              <div class="doc-icon"><i class="ph ph-file-text"></i></div>
+              <div class="doc-info">
+                <h4>Knowledge Relationships.txt</h4>
+                <p>Uploaded recently • 14 KB</p>
+              </div>
+            </div>
+            <div class="doc-card">
+              <div class="doc-icon"><i class="ph ph-file-code"></i></div>
+              <div class="doc-info">
+                <h4>System_Configuration.json</h4>
+                <p>Uploaded recently • 8 KB</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Retrieval Inspector Panel -->
+      <aside class="inspector-panel hidden" id="inspector-panel">
+        <div class="inspector-header">
+          <h3><i class="ph ph-binoculars"></i> RETRIEVAL INSPECTOR</h3>
+          <button class="btn-icon-sm" id="close-inspector"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="inspector-content">
+          <div class="inspector-placeholder">
+            <i class="ph ph-info"></i>
+            <p>Retrieval metadata</p>
+            <span>Available when retrieval information is exposed by the API.</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
