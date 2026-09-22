@@ -12,7 +12,10 @@ neo4j
 qdrant-client
 
 # Embeddings
-sentence-transformers
+sentence-transformers==3.0.1
+transformers==4.41.2
+torch==2.2.2
+numpy==1.26.4
 
 # API
 fastapi
@@ -26,3 +29,4 @@ python-dotenv
 
 # Document Processing
 pypdf
+python-multipart
