@@ -1,0 +1,28 @@
+# LlamaIndex
+llama-index
+llama-index-llms-groq
+llama-index-embeddings-huggingface
+llama-index-graph-stores-neo4j
+llama-index-vector-stores-qdrant
+
+# Neo4j
+neo4j
+
+# Vector Database
+qdrant-client
+
+# Embeddings
+sentence-transformers
+
+# API
+fastapi
+uvicorn[standard]
+
+# UI
+streamlit
+
+# Environment
+python-dotenv
+
+# Document Processing
+pypdf
