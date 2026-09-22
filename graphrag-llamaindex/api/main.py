@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from app.ingestion.pipeline import run_ingestion
 from app.retrieval.hybrid_retriever import HybridRetriever
 from app.generation.llm import GraphRAGGenerator
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 app = FastAPI(
@@ -12,6 +14,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5500"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class QueryRequest(BaseModel):
     query: str
